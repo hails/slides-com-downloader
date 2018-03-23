@@ -1,29 +1,33 @@
 const puppeteer = require('puppeteer')
 const R = require('ramda')
+const Promise = require('bluebird')
 const args = process.argv.slice(2) || process.exit(1)
 
-const run = async (link, slides) => {
+const run = async (link, totalSlides) => {
     const browser = await puppeteer.launch({args: ['--no-sandbox']})
-    const page = await browser.newPage()
-    page.setViewport({
-        width: 1920,
-        height: 1080
-    })
+    const slides = R.range(0, Number(totalSlides))
 
-    
-    const fetchPage = async (slide) => {
-        console.info(`Saving page: ${slide}`)
-        await page.goto(`${link}/fullscreen/${slide}`)
-        return await page.screenshot({path: `slides/${slide}.png`})
+    const downloadSlide = async (slide) => {
+        const page = await browser.newPage()
+
+        console.info(`Downloading slide: #${slide} of ${totalSlides - 1}`)
+
+        await page.setViewport({
+            width: 1920,
+            height: 1080
+        })
+        await page.goto(`${link}/fullscreen#/${slide}`, {waitUntil: 'networkidle0'})
+        await page.screenshot({path: `./slides/${slide}.png`})
+        return await page.close()
     }
-
-    const printPages = async => R.times(fetchPage)
 
     console.info(`Downloading slides from: ${link}`)
 
-    browser.close()
-
-    return printPages(14)
+    return Promise.resolve(slides)
+        .map(downloadSlide)
+        .then(browser.close)
+        .catch()
 }
+
 
 run(...args)
