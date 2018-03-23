@@ -1,9 +1,9 @@
 const puppeteer = require('puppeteer')
 const R = require('ramda')
-const args = process.argv.slice(2);
+const args = process.argv.slice(2) || process.exit(1)
 
 const run = async (link, slides) => {
-    const browser = await puppeteer.launch()
+    const browser = await puppeteer.launch({args: ['--no-sandbox']})
     const page = await browser.newPage()
     page.setViewport({
         width: 1920,
@@ -20,6 +20,8 @@ const run = async (link, slides) => {
     const printPages = async => R.times(fetchPage)
 
     console.info(`Downloading slides from: ${link}`)
+
+    browser.close()
 
     return printPages(14)
 }
